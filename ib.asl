@@ -8,18 +8,25 @@ state("RPG_RT", "steam")
     bool start : 0xD1E08, 0x8, 0x14, 0x70;
     int frames : 0xD2008, 0x8;
     int eventID : 0xD202C, 0x4, 0x8, 0x4, 0x0, 0x1C;
+
+    // Image properties, used for ending detection
+    bool image5              : 0xD2010, 0x8, 0x4, 0x10, 0xC, 0x609;
+    int image5Transparency   : 0xD2010, 0x8, 0x4, 0x10, 0xA4;
+    bool image40             : 0xD2010, 0x8, 0x4, 0x9C, 0xC, 0x609;
+    int blackTransparency    : 0xD2010, 0x8, 0x4, 0xA4, 0xA4; 
 }
 
 startup
 {
     vars.Log = (Action<object>)((output) => print("[Ib ASL] " + output));
+    vars.NUM_SWITCHES = 910;
+    vars.NUM_VARIABLES = 120;
 }
 
 init
 {
-    vars.NUM_SWITCHES = 910;
-    vars.NUM_VARIABLES = 120;
     vars.startFrames = 0;
+    vars.PORFadeCount = 0;
 }
 
 update
@@ -30,7 +37,7 @@ update
     if (current.switchesPtr != 0){
         current.switches = game.ReadBytes(new IntPtr(current.switchesPtr), (int)vars.NUM_SWITCHES);
         current.variables = new int[vars.NUM_VARIABLES];
-        byte[] varsBytes = game.ReadBytes(new IntPtr(current.varsPtr), (int)vars.NUM_VARIABLES * 4);
+        byte[] varsBytes = game.ReadBytes(new IntPtr(current.varsPtr), (int)vars.NUM_VARIABLES * 4); 
         if (varsBytes != null){
             for (int i = 0; i < vars.NUM_VARIABLES; i++)
             {
@@ -42,14 +49,6 @@ update
     if (current.levelid != old.levelid){
         vars.Log("Level changed: " + old.levelid + " -> " + current.levelid);
     }
-
-    if(current.start != old.start){
-        vars.Log("Start flag: " + current.start);
-    }
-
-    if (current.eventID != old.eventID){
-        vars.Log("Event ID: " + current.eventID);
-    }
 }
 
 start
@@ -58,12 +57,65 @@ start
     if (current.start && !old.start && current.switchesPtr == 0){
         vars.Log("Starting timer");
         vars.startFrames = current.frames;
+        vars.PORFadeCount = 0;
         return true;
     }
 }
 
 split
 {
+    // Endings which show text over a black screen use image 5
+    if (current.image5 && current.image5Transparency < 100 && old.image5Transparency == 100){
+        // Memories Crannies
+        if (current.levelid == 7 && current.eventID == 40 && current.switches[452] == 0){
+            vars.Log("Ending: Memory's Crannies");
+            return true;
+        }
+        // Forgotten Portrait
+        if (current.levelid == 4 && current.eventID == 25){
+            vars.Log("Ending: Forgotten Portrait");
+            return true;
+        }
+        // Ib All Alone
+        // - Variants in dark gallery
+        if (current.levelid == 104 && current.eventID == 13){
+            vars.Log("Ending: Ib All Alone");
+            return true;
+        }
+        // - Variant in final stage
+        if (current.levelid == 128 && current.eventID == 1){
+            vars.Log("Ending: Ib All Alone");
+            return true;
+        }
+        // Welcome to the World of Guertena
+        if(current.levelid == 107){
+            vars.Log("Ending: Welcome to the World of Guertena");
+            return true;
+        }
+        // A Painting's Demise
+        if(current.levelid == 1 && current.switches[535]){
+            vars.Log("Ending: A Painting's Demise");
+            return true;
+        }
+    }
+
+    // Endings which show artwork use image 40
+    if(current.image40 && current.blackTransparency > 0 && old.blackTransparency == 0){
+        // Together Forever
+        if (current.levelid == 1 && current.eventID == 16){
+            vars.Log("Ending: Together Forever");
+            return true;
+        }
+        // Promise of Reunion
+        if (current.levelid == 56){
+            if (vars.PORFadeCount < 2){
+                vars.PORFadeCount++;
+            }else{
+                vars.Log("Ending: Promise of Reunion");
+                return true;
+            }
+        }
+    }
 }
 
 reset
