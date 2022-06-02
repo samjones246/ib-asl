@@ -21,6 +21,36 @@ startup
     vars.Log = (Action<object>)((output) => print("[Ib ASL] " + output));
     vars.NUM_SWITCHES = 910;
     vars.NUM_VARIABLES = 120;
+
+    int[][] transitions = new int[][] {
+        new int [] {05, 10},
+        new int [] {11, 14},
+        new int [] {14, 18},
+        new int [] {25, 26},
+        new int [] {32, 34},
+        new int [] {46, 48},
+        new int [] {54, 55},
+        new int [] {72, 76},
+        new int [] {96, 97},
+    };
+    vars.transitions = transitions;
+    string[] transitionNames = new string[] {
+        "Gallery",
+        "Blue",
+        "Green",
+        "Yellow",
+        "Red",
+        "Grey",
+        "Violet",
+        "Brown",
+        "Sketchbook"
+    };
+
+    settings.Add("splitArea", true, "Split on finishing area");
+
+    for (int i=0;i<transitions.Length;i++){
+        settings.Add("area"+i, true, transitionNames[i], "splitArea");
+    }
 }
 
 init
@@ -34,6 +64,7 @@ update
     current.switches = null;
     current.variables = null;
 
+    // Update switch/variable values
     if (current.switchesPtr != 0){
         current.switches = game.ReadBytes(new IntPtr(current.switchesPtr), (int)vars.NUM_SWITCHES);
         current.variables = new int[vars.NUM_VARIABLES];
@@ -64,7 +95,16 @@ start
 
 split
 {
-    // Endings which show text over a black screen use image 5
+    // -- INTERMEDIARY --
+    // Split on finishing each zone
+    if (old.levelid != current.levelid){
+        for (int i=0;i<vars.transitions.Length;i++){
+            if (old.levelid == vars.transitions[i][0] && current.levelid == vars.transitions[i][1]){
+                vars.Log("Area transition");
+                return true;
+            }
+        }
+    }
     if (current.image5 && current.image5Transparency < 100 && old.image5Transparency == 100){
         // Memories Crannies
         if (current.levelid == 7 && current.eventID == 40 && current.switches[452] == 0){
