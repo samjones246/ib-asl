@@ -12,13 +12,13 @@ state("RPG_RT", "steam")
 
 startup
 {
-    vars.Log = (Action<object>)((output) => print("[Yume Nikki ASL] " + output));
+    vars.Log = (Action<object>)((output) => print("[Ib ASL] " + output));
 }
 
 init
 {
-    vars.NUM_SWITCHES = 300;
-    vars.NUM_VARIABLES = 300;
+    vars.NUM_SWITCHES = 910;
+    vars.NUM_VARIABLES = 120;
     vars.startFrames = 0;
 }
 
