@@ -101,7 +101,7 @@ split
         for (int i=0;i<vars.transitions.Length;i++){
             if (old.levelid == vars.transitions[i][0] && current.levelid == vars.transitions[i][1]){
                 vars.Log("Area transition");
-                return true;
+                return settings["area"+i];
             }
         }
     }
